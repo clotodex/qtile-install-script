@@ -73,7 +73,7 @@ pdm update
 pdm add dbus-next
 
 pushd qtile || exit 1
-pdm run make run-ffibuild
+make run-ffibuild
 popd || exit 1
 pdm add 'qtile @ file:///${PROJECT_ROOT}/qtile'
 
