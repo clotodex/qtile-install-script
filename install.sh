@@ -1,9 +1,19 @@
+#!/bin/bash
+
 # check if pyproject.toml exists
 if [ -f pyproject.toml ]; then
     echo "not clean"
 	echo "please run clean.sh"
 	exit 1
 fi
+
+EXTRA=false
+# check for the --extra flag
+if [ "$1" == "--extra" ]; then
+    echo "will install qtile-extra"
+	EXTRA=true
+fi
+
 
 cp pyproject.toml.template pyproject.toml
 pdm venv create /usr/bin/python3.10
@@ -52,35 +62,37 @@ pdm add pywlroots
 if [ ! -d qtile ]; then
     git clone https://github.com/qtile/qtile.git
 else
-    pushd qtile
+    pushd qtile || exit 1
     git pull
-    popd
+    popd || exit 1
 fi
+
 pdm import qtile/requirements.txt
 pdm update
-pushd qtile
-make run-ffibuild
-popd
+
+pdm add dbus-next
+
+pushd qtile || exit 1
+pdm run make run-ffibuild
+popd || exit 1
 pdm add 'qtile @ file:///${PROJECT_ROOT}/qtile'
 
 ################
 # qtile-extras #
 ################
 
-# clone if the folder does not exist, else pull
-if [ ! -d qtile-extras ]; then
-	git clone https://github.com/elParaguayo/qtile-extras
-else
-    pushd qtile-extras
-    git pull
-    popd
+if [ "$EXTRA" = true ]; then
+	# clone if the folder does not exist, else pull
+	if [ ! -d qtile-extras ]; then
+		git clone https://github.com/elParaguayo/qtile-extras
+	else
+		pushd qtile-extras || exit 1
+		git pull
+		popd || exit 1
+	fi
+
+	pdm add psutil
+	pdm add iwlib
+
+	pdm add 'qtile-extras @ file:///${PROJECT_ROOT}/qtile-extras'
 fi
-pushd qtile
-make run_ffibuild
-popd
-
-pdm add psutil
-pdm add dbus-next
-pdm add iwlib
-
-pdm add 'qtile-extras @ file:///${PROJECT_ROOT}/qtile-extras'

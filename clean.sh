@@ -1,3 +1,5 @@
+#!/bin/bash
+
 rm -rf pywlroots
 rm -rf qtile
 rm -rf qtile-extras
