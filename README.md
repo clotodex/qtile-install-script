@@ -5,6 +5,7 @@ A suite to install qtile with all dependencies correctly (used for personal debu
 
 - Have a reproducible setup of a qtile installation
 - Fix all libraries automatically to prevent pywlroots bugs
+- Corretly build cffi of qtile
 - A repository to reference how qtile was installed
 
 ## What it does
@@ -15,6 +16,12 @@ A suite to install qtile with all dependencies correctly (used for personal debu
 - clones and installs qtile
 - runs ffi build scripts
 - optionally installs qtile-extra if called with the `--extra` flag
+
+## Usage
+
+'./install-pip.sh [--extra]' (This was tested and is capable of solving the issue.)
+
+'./install.sh [--extra]' (Uses pdm instead of pip - untested.)
 
 ## How to launch qtile
 

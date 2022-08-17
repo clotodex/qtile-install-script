@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# check if pyproject.toml exists
-if [ -f pyproject.toml ]; then
+# check if .venv folder exists
+if [ -d .venv ]; then
     echo "not clean"
 	echo "please run clean.sh"
 	exit 1
@@ -14,18 +14,13 @@ if [ "$1" == "--extra" ]; then
 	EXTRA=true
 fi
 
-
-cp pyproject.toml.template pyproject.toml
-pdm venv create /usr/bin/python3.10
-pdm use .venv
-pdm config --local install.cache false
-
-eval "$(pdm venv activate)"
+virtualenv .venv -p python3.10
+source .venv/bin/activate
 
 # carfully adding important libs first
-pdm add xcffib
-pdm add cairocffi
-pdm add cffi
+pip install --no-cache-dir cffi
+pip install --no-cache-dir xcffib
+pip install --no-cache-dir cairocffi
 
 #############
 # pywlroots #
@@ -48,10 +43,10 @@ pdm add cffi
 #python setup.py install --install-platlib build/temp.linux-x86_64-cpython-310
 #popd
 # pdm add 'pywlroots @ file:///${PROJECT_ROOT}/pywlroots'
-pdm add pywayland
+pip install --no-cache-dir pywayland
 ./allpatch.sh ".venv/lib/python3.10/site-packages/pywayland.libs"
 
-pdm add pywlroots
+pip install --no-cache-dir pywlroots
 ./allpatch.sh ".venv/lib/python3.10/site-packages/pywlroots.libs"
 
 #########
@@ -67,16 +62,15 @@ else
     popd || exit 1
 fi
 
-pdm import qtile/requirements.txt
-pdm update
+pip install --no-cache-dir -r qtile/requirements.txt
 
-pdm add dbus-next
+pip install --no-cache-dir dbus-next
 
 pushd qtile || exit 1
 make run-ffibuild
 python setup.py build --build-scripts=scripts install
+pip install .
 popd || exit 1
-pdm add 'qtile @ file:///${PROJECT_ROOT}/qtile'
 
 ################
 # qtile-extras #
@@ -92,8 +86,9 @@ if [ "$EXTRA" = true ]; then
 		popd || exit 1
 	fi
 
-	pdm add psutil
-	pdm add iwlib
-
-	pdm add 'qtile-extras @ file:///${PROJECT_ROOT}/qtile-extras'
+	pip install --no-cache-dir psutil
+	pip install --no-cache-dir iwlib
+	pushd qtile-extras || exit 1
+	pip install .
+	popd || exit 1
 fi
