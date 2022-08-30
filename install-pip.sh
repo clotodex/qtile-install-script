@@ -88,6 +88,8 @@ if [ "$EXTRA" = true ]; then
 
 	pip install --no-cache-dir psutil
 	pip install --no-cache-dir iwlib
+	pip install --no-cache-dir pyxdg
+
 	pushd qtile-extras || exit 1
 	pip install .
 	popd || exit 1
