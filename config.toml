@@ -1,4 +1,5 @@
 install-dir = "./qtile-install"
+link-target = "~/.local/bin/qtile"
 # X not yet supported
 backend = "wayland"
 

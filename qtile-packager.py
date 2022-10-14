@@ -25,8 +25,23 @@ def clean(config):
     if not os.path.exists(install_dir):
         print("nothing to clean up")
         return
-    # removes virtualenv
     venv_dir = join(install_dir, config["venv"]["dir"])
+    # check if the link-target points to the install-dir/venv and remove it if so, skip if not
+    link_target = os.path.abspath(os.path.expanduser(config["link-target"]))
+    link_source = join(venv_dir, "bin", "qtile")
+    if os.path.exists(link_target):
+        if os.path.islink(link_target):
+            if os.path.realpath(link_target) == link_source:
+                os.unlink(link_target)
+                print(f"symlink removed")
+            else:
+                print(f"symlink skipped (does not point to this install)")
+        else:
+            print(f"symlink skipped (does not seem to be a link)")
+    else:
+        print(f"symlink skipped (does not exist)")
+
+    # removes virtualenv
     if os.path.exists(venv_dir):
         print("removing venv directory")
         os.system(f"rm -rf {venv_dir}")
@@ -70,7 +85,7 @@ def main():
 
     if args.command == "install" or args.command == "update":
         # create install dir if it does not exist
-        install_dir = os.path.abspath(config["install-dir"])
+        install_dir = os.path.abspath(os.path.expanduser(config["install-dir"]))
          # create install dir if it does not exist
         if not os.path.exists(install_dir):
             print("creating install directory")
@@ -143,6 +158,33 @@ def main():
                 call_in_venv(f"pip install -U --no-cache-dir {dep}", cwd=extension_dir)
             print(">> installing extension")
             call_in_venv("pip install .", cwd=extension_dir)
+
+        # check and setup symlink to config["link-target"]
+        print(">> symlinking qtile")
+        link_target = os.path.abspath(os.path.expanduser(config["link-target"]))
+        link_source = join(venv_dir, "bin", "qtile")
+        create_symlink = False
+        if os.path.exists(link_target):
+            if os.path.islink(link_target):
+                # check if destination is correct already
+                if os.path.realpath(link_target) == link_source:
+                    print(f"link {link_target} is already set up correctly")
+                else:
+                    print(f"link {link_target} exists, and points to the wrong destination {os.path.realpath(link_target)}, replace?")
+                    # TODO: interactive
+                    exit(1)
+                    os.unlink(link_target)
+                    create_symlink = True
+            else:
+                print(f"link target {link_target} exists and is not a symlink, replace?")
+                # TODO: interactive
+                exit(1)
+                create_symlink = True
+        else:
+            create_symlink = True
+        if create_symlink:
+            os.symlink(link_source, link_target)
+            print(f"link {link_target} created")
 
         print("done")
 
