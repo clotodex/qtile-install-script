@@ -1,28 +1,28 @@
 # qtile-install-script (for wayland)
-A suite to install qtile with all dependencies correctly (used for personal debugging and issue reporting).
+A suite to install qtile with all dependencies and extensions correctly and in a reproducible way.
 
 ## Goal
 
-- Have a reproducible setup of a qtile installation
-- Fix all libraries automatically to prevent pywlroots bugs
+- An easy way to install and update to the most recent version of qtile 
+- Have a reproducible setup of a qtile installation, including dependencies and extensions (everything you need alongside dotfiles)
+- Fix all libraries automatically to prevent pywlroots bugs (wayland)
 - Corretly build cffi of qtile
 - A repository to reference how qtile was installed
 
 ## What it does
 
-- Sets up a new [PDM](https://pdm.fming.dev/) project for local and sane dependency management.
+- configure in `config.toml`
 - installs all necessary dependencies one by one
 - patches libraries not being linked to system libraries
 - clones and installs qtile
 - runs ffi build scripts
-- optionally installs qtile-extra if called with the `--extra` flag
+- optionally installs extensions
+- links the install to your symlink of choice
 
 ## Usage
 
-'./install-pip.sh [--extra]' (This was tested and is capable of solving the issue.)
+configure in `config.toml`: installation directory, symlink, extensions, ...
 
-'./install.sh [--extra]' (Uses pdm instead of pip - untested.)
-
-## How to launch qtile
-
-`dbus-run-session <path-to-this-folder>/.venv/bin/qtile start -b wayland`
+`./qtile-packager.py clean` to clean / uninstall everything
+`./qtile-packager.py install` cleans and then installs everything
+`./qtile-packager.py update` update the installation
