@@ -1,0 +1,13 @@
+install-dir = "./qtile-install"
+# X not yet supported
+backend = "wayland"
+
+[venv]
+dir = ".venv"
+args = "-p python3.10"
+
+[extensions]
+
+[extensions.extras]
+repo = "https://github.com/elParaguayo/qtile-extras"
+dependencies = ["psutil", "iwlib", "pyxdg"]
