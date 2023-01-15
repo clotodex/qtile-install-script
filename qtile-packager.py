@@ -16,8 +16,10 @@ import toml
 import os
 from os.path import join, basename
 from subprocess import call
+
 wayland_dependencies = ["pywlroots", "pywayland"]
-general_dependencies = ["cffi","xcffib", "cairocffi","dbus-next"]
+general_dependencies = ["cffi", "xcffib", "cairocffi", "dbus-next"]
+
 
 def clean(config):
     install_dir = config["install-dir"]
@@ -57,10 +59,12 @@ def clean(config):
             os.system(f"rm -rf {extension_dir}")
     print("cleaning up done")
 
+
 def install(config, update=False):
     # create install dir if it does not exist
     install_dir = os.path.abspath(os.path.expanduser(config["install-dir"]))
-        # create install dir if it does not exist
+    qtile_repo = config.get("qtile_repo", "https://github.com/qtile/qtile.git")
+    # create install dir if it does not exist
     if not os.path.exists(install_dir):
         print("creating install directory")
         os.makedirs(install_dir)
@@ -73,13 +77,19 @@ def install(config, update=False):
         print(">> venv found")
     else:
         if os.path.exists(venv_dir):
-            raise RuntimeError("virtualenv already exists, should have been cleaned, please file an issue")
+            raise RuntimeError(
+                "virtualenv already exists, should have been cleaned, please file an issue"
+            )
         print("creating virtual environment")
-        call(f"virtualenv {config['venv']['dir']} {config['venv']['args']}", cwd=install_dir, shell=True)
+        call(
+            f"virtualenv {config['venv']['dir']} {config['venv']['args']}",
+            cwd=install_dir,
+            shell=True,
+        )
 
     def call_in_venv(command, *args, **kwargs):
         kwargs["shell"] = True
-        call(f"source {venv_dir}/bin/activate && {command}", *args, **kwargs) 
+        call(f"source {venv_dir}/bin/activate && {command}", *args, **kwargs)
 
     # get lib dir (first folder in venv/lib/...)
     lib_dir = join(venv_dir, "lib", os.listdir(join(venv_dir, "lib"))[0])
@@ -97,13 +107,18 @@ def install(config, update=False):
             print(f">> installing {dep}")
             call_in_venv(f"pip install -U --no-cache-dir {dep}", cwd=install_dir)
             print(f">> patching {dep}")
-            call_in_venv(f"/bin/bash allpatch.sh {lib_dir}/site-packages/{dep}.libs", cwd=install_dir)
+            call_in_venv(
+                f"/bin/bash allpatch.sh {lib_dir}/site-packages/{dep}.libs",
+                cwd=install_dir,
+            )
 
     else:
-        raise RuntimeError(f"backend {config['backend']} not supported, please create an issue to ask for support.")
+        raise RuntimeError(
+            f"backend {config['backend']} not supported, please create an issue to ask for support."
+        )
 
     # install qtile
-    qtile_dir=join(install_dir, "qtile")
+    qtile_dir = join(install_dir, "qtile")
     if update:
         if not os.path.exists(qtile_dir):
             raise RuntimeError("qtile does not exist, but in update mode")
@@ -111,10 +126,12 @@ def install(config, update=False):
         call("git pull", cwd=qtile_dir, shell=True)
     else:
         print(">> cloning qtile")
-        call("git clone https://github.com/qtile/qtile.git", cwd=install_dir, shell=True)
+        call(f"git clone {qtile_repo}", cwd=install_dir, shell=True)
 
     print(">> installing qtile dependencies")
-    call_in_venv("pip install -U --no-cache-dir -r qtile/requirements.txt", cwd=install_dir)
+    call_in_venv(
+        "pip install -U --no-cache-dir -r qtile/requirements.txt", cwd=install_dir
+    )
     call_in_venv("pip install -U --no-cache-dir dbus-next", cwd=install_dir)
 
     print(">> setup ffi")
@@ -153,7 +170,9 @@ def install(config, update=False):
             if os.path.realpath(link_target) == link_source:
                 print(f"link {link_target} is already set up correctly")
             else:
-                print(f"link {link_target} exists, and points to the wrong destination {os.path.realpath(link_target)}, replace?")
+                print(
+                    f"link {link_target} exists, and points to the wrong destination {os.path.realpath(link_target)}, replace?"
+                )
                 # TODO: interactive
                 exit(1)
                 os.unlink(link_target)
@@ -179,13 +198,19 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("-c", "--config", default="config.toml", help="config file")
     # TODO: logger
-    #parser.add_argument("-v", "--verbose", action="store_true", help="show what's happening")
+    # parser.add_argument("-v", "--verbose", action="store_true", help="show what's happening")
     subparser = parser.add_subparsers()
-    pclean = subparser.add_parser('clean', help="removes all directories and virtual environments, automatically called by install")
+    pclean = subparser.add_parser(
+        "clean",
+        help="removes all directories and virtual environments, automatically called by install",
+    )
     pclean.set_defaults(command="clean")
-    pinstall = subparser.add_parser('install', help="installs everything")
+    pinstall = subparser.add_parser("install", help="installs everything")
     pinstall.set_defaults(command="install")
-    pupdate = subparser.add_parser('update', help="updates everything, no cleaning: pull instead of clone, pip install -U")
+    pupdate = subparser.add_parser(
+        "update",
+        help="updates everything, no cleaning: pull instead of clone, pip install -U",
+    )
     pupdate.set_defaults(command="update")
 
     args = parser.parse_args()
@@ -200,6 +225,7 @@ def main():
 
     if args.command == "install" or args.command == "update":
         install(config, update=args.command == "update")
+
 
 if __name__ == "__main__":
     main()
