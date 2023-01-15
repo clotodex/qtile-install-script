@@ -63,7 +63,11 @@ def clean(config):
 def install(config, update=False):
     # create install dir if it does not exist
     install_dir = os.path.abspath(os.path.expanduser(config["install-dir"]))
-    qtile_repo = config.get("qtile_repo", "https://github.com/qtile/qtile.git")
+    qtile_repo = config.get("repo_location", "https://github.com/qtile/qtile.git")
+    # if the repo is a local path, resolve it based on this path
+    if os.path.exists(qtile_repo):
+        qtile_repo = os.path.abspath(qtile_repo)
+    qtile_branch = config.get("repo_branch", "main")
     # create install dir if it does not exist
     if not os.path.exists(install_dir):
         print("creating install directory")
@@ -126,7 +130,11 @@ def install(config, update=False):
         call("git pull", cwd=qtile_dir, shell=True)
     else:
         print(">> cloning qtile")
-        call(f"git clone {qtile_repo}", cwd=install_dir, shell=True)
+        call(
+            f"git clone {qtile_repo} -b {qtile_branch} qtile",
+            cwd=install_dir,
+            shell=True,
+        )
 
     print(">> installing qtile dependencies")
     call_in_venv(
@@ -140,6 +148,24 @@ def install(config, update=False):
 
     print(">> installing qtile")
     call_in_venv("pip install -U .", cwd=qtile_dir)
+
+    if config.get("faulthandler", False):
+        print(">> setting up faulthandler")
+        entrypoint = join(qtile_dir, "bin", "qtile")
+        with open(entrypoint, "r") as f:
+            contents = f.readlines()
+
+        index = 0
+        for i, line in enumerate(contents):
+            if line.strip().startswith("#"):
+                continue
+            index = i
+            break
+        contents.insert(index, "\nimport faulthandler")
+        contents.insert(index + 1, "\nfaulthandler.enable()\n")
+
+        with open(entrypoint, "w") as f:
+            f.writelines(contents)
 
     # extensions
     for name, extension in config["extensions"].items():
