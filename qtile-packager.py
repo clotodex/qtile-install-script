@@ -67,7 +67,7 @@ def install(config, update=False):
     # if the repo is a local path, resolve it based on this path
     if os.path.exists(qtile_repo):
         qtile_repo = os.path.abspath(qtile_repo)
-    qtile_branch = config.get("repo_branch", "main")
+    qtile_branch = config.get("repo_branch", "master")
     # create install dir if it does not exist
     if not os.path.exists(install_dir):
         print("creating install directory")
