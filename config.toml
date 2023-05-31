@@ -3,11 +3,11 @@ link-target = "~/.local/bin/qtile"
 # X not yet supported
 backend = "wayland"
 
-faulthandler = true
+faulthandler = false
 
 [venv]
 dir = ".venv"
-args = "-p python3.10"
+args = "-p python3.11"
 
 [extensions]
 

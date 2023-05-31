@@ -104,7 +104,7 @@ def install(config, update=False):
     # carfully adding important libs first
     for dep in general_dependencies:
         print(f">> installing {dep}")
-        call_in_venv(f"pip install -U --no-cache-dir {dep}", cwd=install_dir)
+        call_in_venv(f"pip install -U --no-cache-dir --no-build-isolation {dep}", cwd=install_dir)
 
     if config["backend"] == "wayland":
         for dep in wayland_dependencies:
@@ -140,7 +140,7 @@ def install(config, update=False):
 
     print(">> installing qtile dependencies")
     call_in_venv(
-        "pip install -U --no-cache-dir -r qtile/requirements.txt", cwd=install_dir
+        "pip install -U --no-cache-dir --no-build-isolation -r qtile/requirements.txt", cwd=install_dir
     )
     call_in_venv("pip install -U --no-cache-dir dbus-next", cwd=install_dir)
 
@@ -149,7 +149,7 @@ def install(config, update=False):
     call_in_venv("python setup.py build --build-scripts=scripts install", cwd=qtile_dir)
 
     print(">> installing qtile")
-    call_in_venv("pip install -U .", cwd=qtile_dir)
+    call_in_venv("pip install --no-cache-dir --no-build-isolation -U .", cwd=qtile_dir)
 
     if config.get("faulthandler", False):
         print(">> setting up faulthandler")

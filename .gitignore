@@ -1,0 +1,7 @@
+build/
+build-devel/
+config-local-dev.toml
+qtile_version.lock
+
+.envrc
+.direnv/
