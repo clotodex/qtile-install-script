@@ -17,7 +17,7 @@ import os
 from os.path import join, basename
 from subprocess import call
 
-wayland_dependencies = ["pywlroots", "pywayland"]
+wayland_dependencies = ["pywlroots<0.16.0", "pywayland"]
 general_dependencies = ["cffi", "xcffib", "cairocffi", "dbus-next"]
 
 
@@ -109,7 +109,9 @@ def install(config, update=False):
     if config["backend"] == "wayland":
         for dep in wayland_dependencies:
             print(f">> installing {dep}")
-            call_in_venv(f"pip install -U --no-cache-dir {dep}", cwd=install_dir)
+            call_in_venv(f"pip install -U --no-cache-dir '{dep}'", cwd=install_dir)
+            # remove version suffix if it exists
+            dep = dep.replace("<","=").replace(">","=").split("=")[0]
             print(f">> patching {dep}")
             call_in_venv(
                 f"/bin/bash allpatch.sh {lib_dir}/site-packages/{dep}.libs",

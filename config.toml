@@ -1,7 +1,9 @@
-install-dir = "./qtile-install"
+install-dir = "./build"
 link-target = "~/.local/bin/qtile"
 # X not yet supported
 backend = "wayland"
+
+faulthandler = true
 
 [venv]
 dir = ".venv"
