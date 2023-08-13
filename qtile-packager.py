@@ -10,6 +10,7 @@ Features:
 Settings and extensions are configured in a toml config file
 """
 
+import subprocess
 from typing import *
 import argparse
 import toml
@@ -17,11 +18,11 @@ import os
 from os.path import join, basename
 from subprocess import call
 
-wayland_dependencies = ["pywlroots<0.16.0", "pywayland"]
+wayland_dependencies = ["pywlroots", "pywayland"] # <0.16.0
 general_dependencies = ["cffi", "xcffib", "cairocffi", "dbus-next"]
 
 
-def clean(config):
+def clean(config, verbose=False):
     install_dir = config["install-dir"]
     # if install_dir does not exist, do nothing
     if not os.path.exists(install_dir):
@@ -60,14 +61,10 @@ def clean(config):
     print("cleaning up done")
 
 
-def install(config, update=False):
+def install(config, update=False, verbose=False):
     # create install dir if it does not exist
     install_dir = os.path.abspath(os.path.expanduser(config["install-dir"]))
-    qtile_repo = config.get("repo_location", "https://github.com/qtile/qtile.git")
-    # if the repo is a local path, resolve it based on this path
-    if os.path.exists(qtile_repo):
-        qtile_repo = os.path.abspath(qtile_repo)
-    qtile_branch = config.get("repo_branch", "master")
+
     # create install dir if it does not exist
     if not os.path.exists(install_dir):
         print("creating install directory")
@@ -93,7 +90,7 @@ def install(config, update=False):
 
     def call_in_venv(command, *args, **kwargs):
         kwargs["shell"] = True
-        call(f"source {venv_dir}/bin/activate && {command}", *args, **kwargs)
+        call(f"source {venv_dir}/bin/activate && {command}", *args, **kwargs, stdout= subprocess.DEVNULL if not verbose else None)
 
     # get lib dir (first folder in venv/lib/...)
     lib_dir = join(venv_dir, "lib", os.listdir(join(venv_dir, "lib"))[0])
@@ -101,73 +98,91 @@ def install(config, update=False):
     # activate venv
     exec(open(f"{venv_dir}/bin/activate_this.py").read())
 
-    # carfully adding important libs first
+    qtile_branch = config.get("repo_branch", "master")
+    qtile_repo = config.get("repo_location", "https://github.com/qtile/qtile.git")
+
+    # install qtile
+    print(f">> updating pip and setuptools")
+    call_in_venv("pip install -U pip", cwd=install_dir)
+    call_in_venv("pip install -U setuptools", cwd=install_dir)
+
     for dep in general_dependencies:
         print(f">> installing {dep}")
         call_in_venv(f"pip install -U --no-cache-dir --no-build-isolation {dep}", cwd=install_dir)
 
-    if config["backend"] == "wayland":
-        for dep in wayland_dependencies:
-            print(f">> installing {dep}")
-            call_in_venv(f"pip install -U --no-cache-dir '{dep}'", cwd=install_dir)
-            # remove version suffix if it exists
-            dep = dep.replace("<","=").replace(">","=").split("=")[0]
-            print(f">> patching {dep}")
-            call_in_venv(
-                f"/bin/bash allpatch.sh {lib_dir}/site-packages/{dep}.libs",
+    for dep in wayland_dependencies:
+        print(f">> installing {dep}")
+        call_in_venv(f"pip install -U --no-cache-dir '{dep}'", cwd=install_dir)
+        # remove version suffix if it exists
+        dep = dep.replace("<","=").replace(">","=").split("=")[0]
+        print(f">> patching {dep}")
+        call_in_venv(
+            f"/bin/bash allpatch.sh {lib_dir}/site-packages/{dep}.libs",
+            cwd=install_dir,
+        )
+
+    # if the repo is a local path, resolve it based on this path
+    install_from_url_direct = True
+    if os.path.exists(qtile_repo):
+        qtile_repo = os.path.abspath(qtile_repo)
+        install_from_url_direct = False
+
+    if install_from_url_direct:
+        # TODO: parse repo location etc
+        # if local https://stackoverflow.com/questions/30239152/specify-extras-require-with-pip-install-e
+        # pip install ".[wayland]"
+
+        # build url
+        url = f"git+{qtile_repo}@{qtile_branch}"
+        if config["backend"] == "wayland":
+            url = f"qtile[wayland]@{url}"
+        else:
+            raise RuntimeError(
+                f"backend {config['backend']} not supported, please create an issue to ask for support."
+            )
+        print(f">> installing qtile via url")
+        call_in_venv(f"pip install -U --no-cache-dir --no-build-isolation {url}", cwd=install_dir)
+
+        if config.get("faulthandler", False):
+            raise RuntimeError("faulthanlder not supported with repo urls, please create an issue to ask for support.")
+
+    else:
+        # install qtile - cloning can be done from directories
+        qtile_dir = join(install_dir, "qtile")
+        if update:
+            if not os.path.exists(qtile_dir):
+                raise RuntimeError("qtile does not exist, but in update mode")
+            print(">> pulling qtile updates")
+            call(f"git checkout {qtile_branch}", cwd=qtile_dir, shell=True)
+            call("git pull", cwd=qtile_dir, shell=True)
+        else:
+            print(">> cloning qtile")
+            call(
+                f"git clone {qtile_repo} -b {qtile_branch} qtile",
                 cwd=install_dir,
+                shell=True,
             )
 
-    else:
-        raise RuntimeError(
-            f"backend {config['backend']} not supported, please create an issue to ask for support."
-        )
+        print(">> installing qtile")
+        call_in_venv("pip install --no-cache-dir --no-build-isolation -U .[wayland]", cwd=qtile_dir)
 
-    # install qtile
-    qtile_dir = join(install_dir, "qtile")
-    if update:
-        if not os.path.exists(qtile_dir):
-            raise RuntimeError("qtile does not exist, but in update mode")
-        print(">> pulling qtile updates")
-        call("git pull", cwd=qtile_dir, shell=True)
-    else:
-        print(">> cloning qtile")
-        call(
-            f"git clone {qtile_repo} -b {qtile_branch} qtile",
-            cwd=install_dir,
-            shell=True,
-        )
+        if config.get("faulthandler", False):
+            print(">> setting up faulthandler")
+            entrypoint = join(qtile_dir, "bin", "qtile")
+            with open(entrypoint, "r") as f:
+                contents = f.readlines()
 
-    print(">> installing qtile dependencies")
-    call_in_venv(
-        "pip install -U --no-cache-dir --no-build-isolation -r qtile/requirements.txt", cwd=install_dir
-    )
-    call_in_venv("pip install -U --no-cache-dir dbus-next", cwd=install_dir)
+            index = 0
+            for i, line in enumerate(contents):
+                if line.strip().startswith("#"):
+                    continue
+                index = i
+                break
+            contents.insert(index, "\nimport faulthandler")
+            contents.insert(index + 1, "\nfaulthandler.enable()\n")
 
-    print(">> setup ffi")
-    call_in_venv("make run-ffibuild", cwd=qtile_dir)
-    call_in_venv("python setup.py build --build-scripts=scripts install", cwd=qtile_dir)
-
-    print(">> installing qtile")
-    call_in_venv("pip install --no-cache-dir --no-build-isolation -U .", cwd=qtile_dir)
-
-    if config.get("faulthandler", False):
-        print(">> setting up faulthandler")
-        entrypoint = join(qtile_dir, "bin", "qtile")
-        with open(entrypoint, "r") as f:
-            contents = f.readlines()
-
-        index = 0
-        for i, line in enumerate(contents):
-            if line.strip().startswith("#"):
-                continue
-            index = i
-            break
-        contents.insert(index, "\nimport faulthandler")
-        contents.insert(index + 1, "\nfaulthandler.enable()\n")
-
-        with open(entrypoint, "w") as f:
-            f.writelines(contents)
+            with open(entrypoint, "w") as f:
+                f.writelines(contents)
 
     # extensions
     for name, extension in config["extensions"].items():
@@ -226,7 +241,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("-c", "--config", default="config.toml", help="config file")
     # TODO: logger
-    # parser.add_argument("-v", "--verbose", action="store_true", help="show what's happening")
+    parser.add_argument("-v", "--verbose", action="store_true", help="show what's happening")
     subparser = parser.add_subparsers()
     pclean = subparser.add_parser(
         "clean",
@@ -249,10 +264,10 @@ def main():
     print(config)
 
     if args.command == "clean" or args.command == "install":
-        clean(config)
+        clean(config, verbose=args.verbose)
 
     if args.command == "install" or args.command == "update":
-        install(config, update=args.command == "update")
+        install(config, update=args.command == "update", verbose=args.verbose)
 
 
 if __name__ == "__main__":

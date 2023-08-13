@@ -19,10 +19,16 @@ for f in ./*; do
 	# find full name of general_libname in /usr/lib64
 	general_libname_full="/usr/lib64/$general_libname.so"
 	if [ -f "$general_libname_full" ]; then
-		echo "patching $libname .."
-		rm "$libname" && ln -s "$general_libname_full" "$libname" && echo "patched $general_libname" || echo "error patching $general_libname"
+		echo -n "patching $libname .."
+		# test if already patched
+		current_target="$(readlink -f "$f")"
+		if [ "$current_target" = "$general_libname_full" ]; then
+			echo "ALREADY GOOD"
+			continue
+		fi
+		rm "$libname" && ln -s "$general_libname_full" "$libname" && echo -e "\e[32mpatched $general_libname\033[0m" || >&2 echo -e "\e[31m## error patching $general_libname\033[0m"
 	else
-		echo "error: could not find $general_libname_full"
+		>&2 echo -e "\e[31merror: could not find $general_libname_full\033[0m"
 	fi
 done
 
