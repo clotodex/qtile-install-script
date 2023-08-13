@@ -6,7 +6,7 @@ A suite to install qtile with all dependencies and extensions correctly and in a
 - An easy way to install and update to the most recent version of qtile 
 - Have a reproducible setup of a qtile installation, including dependencies and extensions (everything you need alongside dotfiles)
 - Fix all libraries automatically to prevent pywlroots bugs (wayland)
-- Corretly build cffi of qtile
+- Corretly build cffi of qtile [not necessary anymore since qtile now handles it automatically]
 - A repository to reference how qtile was installed
 
 ## What it does
