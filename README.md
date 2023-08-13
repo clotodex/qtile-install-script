@@ -26,3 +26,5 @@ configure in `config.toml`: installation directory, symlink, extensions, ...
 `./qtile-packager.py clean` to clean / uninstall everything
 `./qtile-packager.py install` cleans and then installs everything
 `./qtile-packager.py update` update the installation
+
+Then you can start qtile for example with `dbus-run-session qtile start -b wayland` (make sure your link target is in the path).
