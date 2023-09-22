@@ -141,7 +141,7 @@ def install(config, update=False, verbose=False):
                 f"backend {config['backend']} not supported, please create an issue to ask for support."
             )
         print(f">> installing qtile via url")
-        call_in_venv(f"pip install -U --no-cache-dir --no-build-isolation {url}", cwd=install_dir)
+        call_in_venv(f"pip install -U --no-cache-dir {url}", cwd=install_dir)
 
         if config.get("faulthandler", False):
             raise RuntimeError("faulthanlder not supported with repo urls, please create an issue to ask for support.")
@@ -164,7 +164,7 @@ def install(config, update=False, verbose=False):
             )
 
         print(">> installing qtile")
-        call_in_venv("pip install --no-cache-dir --no-build-isolation -U .[wayland]", cwd=qtile_dir)
+        call_in_venv("pip install --no-cache-dir -U .[wayland]", cwd=qtile_dir)
 
         if config.get("faulthandler", False):
             print(">> setting up faulthandler")
