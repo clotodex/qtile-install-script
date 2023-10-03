@@ -18,7 +18,7 @@ import os
 from os.path import join, basename
 from subprocess import call
 
-wayland_dependencies = ["pywlroots", "pywayland"] # <0.16.0
+wayland_dependencies = ["pywlroots==0.16.4", "pywayland"] # <0.16.0
 general_dependencies = ["cffi", "xcffib", "cairocffi", "dbus-next"]
 
 
