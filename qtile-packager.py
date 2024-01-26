@@ -122,7 +122,7 @@ def install(config, update=False, verbose=False):
         )
 
     # if the repo is a local path, resolve it based on this path
-    install_from_url_direct = True
+    install_from_url_direct = False # FIXME: currently broken
     if os.path.exists(qtile_repo):
         qtile_repo = os.path.abspath(qtile_repo)
         install_from_url_direct = False
@@ -135,7 +135,7 @@ def install(config, update=False, verbose=False):
         # build url
         url = f"git+{qtile_repo}@{qtile_branch}"
         if config["backend"] == "wayland":
-            url = f"qtile[wayland]@{url}"
+            url = f"qtile[wayland,widgets]@{url}"
         else:
             raise RuntimeError(
                 f"backend {config['backend']} not supported, please create an issue to ask for support."
@@ -164,7 +164,8 @@ def install(config, update=False, verbose=False):
             )
 
         print(">> installing qtile")
-        call_in_venv("pip install --no-cache-dir -U .[wayland]", cwd=qtile_dir)
+        call_in_venv("pip install --no-cache-dir -U .", cwd=qtile_dir)
+        call_in_venv("pip install --no-cache-dir -U --config-setting backend=wayland .", cwd=qtile_dir)
 
         if config.get("faulthandler", False):
             print(">> setting up faulthandler")
